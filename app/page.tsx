@@ -1,95 +1,113 @@
+"use client";
 import Image from "next/image";
 import styles from "./page.module.css";
+import { v4 as uuidv4 } from "uuid";
+import { useState } from "react";
+enum DirectoryType {
+  FILE = "FILE",
+  DIRECTORY = "DIRECTORY",
+}
+
+const dummy = [
+  {
+    name: "root ",
+    directoryType: DirectoryType.DIRECTORY,
+    id: uuidv4(),
+    subDirectories: [],
+  },
+];
 
 export default function Home() {
+  const [directories, setDirectories] = useState<any>(dummy);
+  const [name, setName] = useState("");
+  const [parentId, setParentId] = useState<any>();
+  const [createType, setCreateType] = useState<any>();
+
+  const renderDirectories = (_directories: any) => {
+    if (!_directories) return null;
+    if (Array.isArray(_directories)) {
+      return _directories.map((directory: any) => {
+        return (
+          <div key={directory.id} className={"directory"}>
+            <div>
+              {directory.name}
+              {directory.directoryType === DirectoryType.DIRECTORY && (
+                <>
+                  <button
+                    onClick={() => {
+                      setParentId(directory.id);
+                      setCreateType(DirectoryType.DIRECTORY);
+                    }}
+                  >
+                    Create Folder
+                  </button>
+                  <button
+                    onClick={() => {
+                      setParentId(directory.id);
+                      setCreateType(DirectoryType.FILE);
+                    }}
+                  >
+                    Create File
+                  </button>
+                </>
+              )}
+            </div>
+            {renderDirectories(directory.subDirectories)}
+          </div>
+        );
+      });
+    } else {
+      return <div className="file">{_directories.name}</div>;
+    }
+  };
+
+  const onCreateRecursive = (_directories: any) => {
+    if (!_directories) return undefined;
+    if (Array.isArray(_directories)) {
+      return _directories.map((dir) => {
+        if (dir.id === parentId) {
+          dir.subDirectories.push({
+            name,
+            directoryType: createType,
+            id: uuidv4(),
+            subDirectories:
+              createType === DirectoryType.DIRECTORY ? [] : undefined,
+          });
+        } else {
+          dir.subDirectories = onCreateRecursive(dir.subDirectories);
+        }
+        return dir;
+      });
+    } else {
+      return _directories;
+    }
+  };
+
+  const onCreate = () => {
+    setDirectories(onCreateRecursive(directories));
+  };
+
   return (
-    <main className={styles.main}>
-      <div className={styles.description}>
-        <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>app/page.tsx</code>
-        </p>
+    <main style={{ display: "flex", gap: "50px" }}>
+      {directories ? (
+        <div>{renderDirectories(directories)}</div>
+      ) : (
+        <button>Create root folder </button>
+      )}
+      {createType && (
         <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+          <p>Enter {createType}</p>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => {
+              setName(e.target.value);
+            }}
+          />
+
+          <button onClick={onCreate}> Create </button>
         </div>
-      </div>
-
-      <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className={styles.grid}>
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p>Find in-depth information about Next.js features and API.</p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Learn <span>-&gt;</span>
-          </h2>
-          <p>Learn about Next.js in an interactive course with&nbsp;quizzes!</p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p>Explore starter templates for Next.js.</p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
+      )}
     </main>
   );
 }
